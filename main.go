@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -75,16 +76,14 @@ func init() {
 	prometheus.Register(totalRequests)
 	prometheus.Register(responseStatus)
 	prometheus.Register(httpDuration)
+
 	// Set tracing provider
-	// TODO Tracing: Configure tracing provider. Uncomment following 4 lines.
-	// tp, err := tracerProvider(tracingUrl)
-	// if err != nil {
-	//	log.Fatal(err)
-	// }
-	// TODO Tracing: Enable tracing provider. Uncomment following line.
-	// otel.SetTracerProvider(tp)
-	// TODO Tracing: Enable cross-boundary context propagation for tracing. Uncomment following line.
-	// otel.SetTextMapPropagator(propagation.TraceContext{})
+	tp, err := tracerProvider(tracingUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 }
 
 func main() {
@@ -92,8 +91,8 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", homeHandler)
 	r.Handle("/metrics", promhttp.Handler())
-	// TODO Tracing: Enable tracing middleware. Uncomment following line.
-	// r.Use(tracingMiddleware)
+
+	r.Use(tracingMiddleware)
 	r.Use(metricsMiddleware)
 	r.Use(loggingMiddleware)
 	log.Infof("starting observability app on: %s", appAddr)
